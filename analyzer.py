@@ -14,12 +14,49 @@ import requests
 from collections import defaultdict
 from datetime import datetime
 from urllib.parse import quote
+import time
+import threading
+
+
+class ProgressIndicator:
+    """Show animated progress while waiting"""
+    def __init__(self, message="Processing"):
+        self.message = message
+        self.running = False
+        self.thread = None
+        
+    def _animate(self):
+        """Animation loop"""
+        spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        idx = 0
+        start_time = time.time()
+        while self.running:
+            elapsed = int(time.time() - start_time)
+            sys.stdout.write(f'\r{spinner[idx]} {self.message}... {elapsed}s ')
+            sys.stdout.flush()
+            idx = (idx + 1) % len(spinner)
+            time.sleep(0.1)
+    
+    def start(self):
+        """Start progress indicator"""
+        self.running = True
+        self.thread = threading.Thread(target=self._animate)
+        self.thread.daemon = True
+        self.thread.start()
+    
+    def stop(self, final_message="Done"):
+        """Stop progress indicator"""
+        self.running = False
+        if self.thread:
+            self.thread.join()
+        sys.stdout.write(f'\r✅ {final_message}' + ' ' * 20 + '\n')
+        sys.stdout.flush()
 
 
 class WaybackAnalyzer:
     """Analyze website coverage in the Wayback Machine"""
     
-    CDX_API = "http://web.archive.org/cdx/search/cdx"
+    CDX_API = "https://web.archive.org/cdx/search/cdx"
     
     def __init__(self, domain):
         self.domain = domain.replace('http://', '').replace('https://', '').strip('/')
@@ -29,7 +66,6 @@ class WaybackAnalyzer:
         """Fetch snapshot data from CDX API"""
         print(f"🔍 Analyzing: {self.domain}")
         print("━" * 50)
-        print("⏳ Fetching archive data...\n")
         
         params = {
             'url': self.domain,
@@ -40,21 +76,43 @@ class WaybackAnalyzer:
             'limit': 100000  # Free version limit
         }
         
+        # Start progress indicator
+        progress = ProgressIndicator("Fetching archive data from Wayback Machine")
+        progress.start()
+        
         try:
-            response = requests.get(self.CDX_API, params=params, timeout=30)
+            response = requests.get(self.CDX_API, params=params, timeout=90)
             response.raise_for_status()
             data = response.json()
+            
+            # Stop progress indicator
+            progress.stop("Data fetched successfully!")
             
             # Skip header row
             if data and len(data) > 1:
                 self.snapshots = data[1:]
+                print(f"📊 Found {len(self.snapshots):,} snapshots to analyze\n")
                 return True
             else:
                 print("❌ No archive data found for this domain.")
+                print("\n💡 Tip: Make sure the domain was archived. Check https://web.archive.org")
                 return False
                 
+        except requests.exceptions.Timeout:
+            progress.stop("Request timed out")
+            print("❌ This domain may have too many snapshots.")
+            print("\n💡 Tips:")
+            print("   • Try a smaller/newer domain first (e.g., example.com)")
+            print("   • Very large sites like google.com may timeout")
+            print("   • For enterprise analysis, contact: https://waybackrevive.com/contact-us")
+            return False
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error fetching data: {e}")
+            progress.stop("Request failed")
+            print(f"❌ Error: {e}")
+            print("\n💡 Troubleshooting:")
+            print("   • Check your internet connection")
+            print("   • Try again in a few moments")
+            print("   • Try a different domain to test")
             return False
     
     def analyze(self):
@@ -173,8 +231,8 @@ class WaybackAnalyzer:
         print("   Our professional team can restore your complete website")
         print("   from the Wayback Machine with all content, images, and")
         print("   functionality intact.")
-        print("\n   👉 Get started: https://waybackrevive.com/contact")
-        print("   📧 Email: hello@waybackrevive.com")
+        print("\n   👉 Get started: https://waybackrevive.com/contact-us")
+        print("   📧 Email: support@waybackrevive.com")
         
         print("\n" + "━" * 50)
     
@@ -203,17 +261,17 @@ class WaybackAnalyzer:
             
             f.write("\n" + "=" * 50 + "\n")
             f.write("\nFor professional website recovery services:\n")
-            f.write("Visit: https://waybackrevive.com/contact\n")
-            f.write("Email: hello@waybackrevive.com\n")
+            f.write("Visit: https://waybackrevive.com/contact-us\n")
+            f.write("Email: support@waybackrevive.com\n")
         
-        print(f"\n💾 Report saved to: {filename}")
+        print(f"\n💾 Report saved to: {filename}\n\n")
 
 
 def main():
     """Main function"""
     parser = argparse.ArgumentParser(
         description='Analyze website archive coverage on the Wayback Machine',
-        epilog='For professional recovery: https://waybackrevive.com'
+        epilog='For professional recovery: https://waybackrevive.com/contact-us'
     )
     parser.add_argument('domains', nargs='+', help='Domain(s) to analyze')
     parser.add_argument('--output', '-o', help='Save report to file')

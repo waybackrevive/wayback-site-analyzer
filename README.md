@@ -119,9 +119,9 @@ Our professional team at **WaybackRevive** specializes in:
 ✨ Custom domain setup
 ✨ Technical support
 
-### 👉 [Get Professional Recovery → waybackrevive.com/contact](https://waybackrevive.com/contact)
+### 👉 [Get Professional Recovery → waybackrevive.com/contact-us](https://waybackrevive.com/contact-us)
 
-📧 Quick consultation: hello@waybackrevive.com
+📧 Quick consultation: support@waybackrevive.com
 
 ---
 
