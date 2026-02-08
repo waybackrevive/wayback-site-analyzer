@@ -43,7 +43,7 @@ python analyzer.py example.com
 ### Setup (One-Time)
 ```bash
 # Clone this repository
-git clone https://github.com/your-username/wayback-site-analyzer.git
+git clone https://github.com/waybackrevive/wayback-site-analyzer.git
 cd wayback-site-analyzer
 
 # Install dependencies
